@@ -16,7 +16,7 @@ password providers. If it is stored in file, it can read it.
 Add the following to your gradle file
 
 ```
-implementation("com.github.skhatri:mounted-secrets:1.0.1")
+implementation("com.github.skhatri:mounted-secrets-client:1.0.1")
 ```
 
 ### Example?
@@ -87,7 +87,7 @@ public class SecretResolverConfig {
     @Autowired
     public MountedSecretsResolver newResolver(SecretProviderConfig secretProviderConfig) {
           ProviderList providerList = new ProviderList(secretProviderConfig.getProviders);
-          return new MountedSecretsFactory(providerList).factory.create();
+          return new MountedSecretsFactory(providerList).create();
     }
 }
 ```
