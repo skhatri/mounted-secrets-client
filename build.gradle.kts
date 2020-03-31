@@ -1,8 +1,15 @@
+import org.gradle.api.artifacts.maven.MavenDeployment
+import org.gradle.api.tasks.bundling.Jar
+
 plugins {
-    id("idea")
-    id("java")
+    idea
+    java
+    jacoco
     id("org.sonarqube") version "2.8"
-    id("jacoco")
+    id("maven-publish")
+    maven
+    signing
+
 }
 
 repositories {
@@ -103,3 +110,45 @@ tasks.check {
     dependsOn(arrayOf("jacocoTestReport", "jacocoTestCoverageVerification"))
 }
 
+
+val sourcesJar by tasks.registering(Jar::class) {
+    classifier = "sources"
+    from(sourceSets.main.get().allSource)
+}
+
+artifacts {
+    add("archives", sourcesJar)
+}
+
+publishing {
+    repositories {
+        maven {
+            url = uri(project.ext["upload.snapshot.url"])
+            credentials {
+                username = "${project.ext["maven.username"]}"
+                password = "${project.ext["maven.password"]}"
+            }
+        }
+    }
+    publications {
+        register("mavenJava", MavenPublication::class) {
+            from(components["java"])
+            artifact(sourcesJar.get())
+        }
+    }
+}
+
+gradle.taskGraph.whenReady {
+    if (allTasks.any { it is Sign }) {
+        allprojects {
+            extra["signing.keyId"] = "${project.ext["signing.keyId"]}"
+            extra["signing.secretKeyRingFile"] = "${project.ext["signing.secretKeyRingFile"]}"
+            extra["signing.password"] = "${project.ext["signing.password"]}"
+        }
+    }
+}
+
+signing {
+    sign(configurations.archives.get())
+    sign(publishing.publications["mavenJava"])
+}
