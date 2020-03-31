@@ -1,3 +1,6 @@
+
+[![Build](https://travis-ci.com/skhatri/mounted-secrets-client.svg?branch=master)](https://travis-ci.com/github/skhatri/mounted-secrets-client)
+
 ## Mounted Secrets Client
 
 Mounted Secrets Client is a java library that reads various secrets from one or many mounts and provides a simple lookup method to retrieve
