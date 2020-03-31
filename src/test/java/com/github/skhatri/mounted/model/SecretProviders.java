@@ -16,6 +16,7 @@ public final class SecretProviders {
         secretProvider.setName(name);
         secretProvider.setEntriesLocation("sample/all.properties");
         secretProvider.setIgnoreResourceFailure(false);
+        secretProvider.setKey(secretProvider.getKey());
         return secretProvider;
     }
 }

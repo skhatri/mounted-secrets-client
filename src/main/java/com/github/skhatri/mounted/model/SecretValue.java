@@ -17,6 +17,10 @@ public class SecretValue {
         return value;
     }
 
+    public ValueDecision getDecision() {
+        return decision;
+    }
+
     public boolean hasValue() {
         return decision != ValueDecision.NOT_FOUND;
     }

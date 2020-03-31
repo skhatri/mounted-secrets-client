@@ -18,13 +18,14 @@ import org.junit.jupiter.api.Test;
 public class DelegatingMountedSecretsResolverTest {
 
     private MountedSecretsResolver secretsResolver;
-    private Function<char[], String> charToString = chrs -> new String(chrs);
+    private Function<char[], String> charToString = chars -> new String(chars);
 
     @BeforeEach
     public void setup() {
         SecretProvider vaultProvider = SecretProviders.anyForName("vault", ErrorDecision.EMPTY);
         SecretProvider adhocProvider = SecretProviders.anyForName("vault-identity", ErrorDecision.IDENTITY);
         SecretProvider remoteProvider = SecretProviders.anyForName("vault-fail", ErrorDecision.FAIL);
+
         ProviderList providerList = new ProviderList(Arrays.asList(vaultProvider, adhocProvider, remoteProvider));
         MountedSecretsFactory factory = new MountedSecretsFactory(providerList);
         secretsResolver = factory.create();
@@ -52,6 +53,7 @@ public class DelegatingMountedSecretsResolverTest {
             String.format("expected type is [%s] but found [%s]",
                 expected.getName(),
                 secretsResolver.getClass().getName()));
+        Assertions.assertNotNull(secretsResolver.name());
     }
 
     @Test

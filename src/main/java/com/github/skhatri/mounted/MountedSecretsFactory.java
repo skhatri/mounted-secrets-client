@@ -16,7 +16,7 @@ public final class MountedSecretsFactory {
             .stream().collect(
                 Collectors.toMap(
                     Map.Entry::getKey,
-                    valueMapper -> new FileSystemSecretsResolver(valueMapper.getValue())
+                    valueMapper -> new FileSystemSecretsResolver(valueMapper.getValue(), new FileResourceReader())
                 )
             );
         this.resolver = new DelegatingMountedSecretsResolver(resolvers);

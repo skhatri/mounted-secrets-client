@@ -5,7 +5,6 @@ import com.github.skhatri.mounted.model.MountedSecretsException;
 import com.github.skhatri.mounted.model.Pair;
 import com.github.skhatri.mounted.model.SecretProvider;
 import com.github.skhatri.mounted.model.SecretValue;
-import com.github.skhatri.mounted.util.IOUtil;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -22,10 +21,12 @@ import java.util.stream.Stream;
 
 public class FileSystemSecretsResolver implements MountedSecretsResolver {
     private final ErrorDecision errorDecision;
+    private final ResourceReader resourceReader;
     private final String name;
     private final Map<String, char[]> entries;
 
-    FileSystemSecretsResolver(SecretProvider secretProvider) {
+    FileSystemSecretsResolver(SecretProvider secretProvider, ResourceReader resourceReader) {
+        this.resourceReader = resourceReader;
         this.name = secretProvider.getName();
         this.errorDecision = ErrorDecision.valueOf(secretProvider.getErrorDecision().toUpperCase());
         this.entries = loadEntries(secretProvider);
@@ -33,7 +34,7 @@ public class FileSystemSecretsResolver implements MountedSecretsResolver {
 
     private Map<String, char[]> loadEntries(SecretProvider secretProvider) {
 
-        Map<String, char[]> fromMountPath = Optional.ofNullable(secretProvider.getMount()).map(this::walker)
+        Map<String, char[]> fromMountPath = Optional.ofNullable(secretProvider.getMount()).map(mount -> walker(mount, secretProvider.failOnResourceFailure()))
             .orElseGet(ArrayList::new)
             .stream()
             .flatMap(file -> readFileContent(secretProvider, file))
@@ -69,7 +70,7 @@ public class FileSystemSecretsResolver implements MountedSecretsResolver {
 
     private Stream<Pair<String, String>> readFileContent(SecretProvider secretProvider, File file) {
         if (file.isFile()) {
-            String data = IOUtil.readFully(file, secretProvider.failOnResourceFailure(), "<empty-data>");
+            String data = resourceReader.read(file.getAbsolutePath(), secretProvider.failOnResourceFailure(), "<empty-data>");
             if (!"<empty-data>".equals(data)) {
                 String mountPath = new File(secretProvider.getMount()).getAbsolutePath();
                 String resourcePath = file.getAbsolutePath();
@@ -81,12 +82,15 @@ public class FileSystemSecretsResolver implements MountedSecretsResolver {
     }
 
 
-    private List<File> walker(String mountDir) {
+    private List<File> walker(String mountDir, boolean failOnResourceFailure) {
         try (Stream<Path> files = Files.walk(new File(mountDir).toPath())) {
             return files.map(Path::toFile).collect(Collectors.toList());
         } catch (IOException ioe) {
-            throw new MountedSecretsException(
-                String.format("issue reading walk directory %s", ioe.getMessage()));
+            if (failOnResourceFailure) {
+                throw new MountedSecretsException(
+                    String.format("issue reading walk directory %s", ioe.getMessage()));
+            }
+            return new ArrayList<>();
         }
     }
 
