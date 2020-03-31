@@ -17,16 +17,21 @@ public class DelegatingMountedSecretsResolver implements MountedSecretsResolver 
 
     @Override
     public SecretValue resolve(String key) {
-        EntryKey entryKey = EntryKey.fromRawValue(key);
-        MountedSecretsResolver matchingResolver =
-            Optional.ofNullable(this.resolvers.get(entryKey.getNamespace()))
-                .orElseThrow(() -> new IllegalArgumentException(String.format("could not find a resolver for namespace %s", entryKey.getNamespace())));
-
-        SecretValue value = matchingResolver.resolve(entryKey.getKey());
-        if (value.isFailure()) {
-            value = findFallbackValue(entryKey, matchingResolver);
+        Optional<EntryKey> entryKeyOpt = EntryKey.fromRawValue(key);
+        if (!entryKeyOpt.isPresent()) {
+            return SecretValue.valueOf(Optional.of(key.toCharArray()), ValueDecision.DEFAULT);
         }
-        return value;
+        return entryKeyOpt.map(entryKey -> {
+            MountedSecretsResolver matchingResolver =
+                Optional.ofNullable(this.resolvers.get(entryKey.getNamespace()))
+                    .orElseThrow(() -> new IllegalArgumentException(String.format("could not find a resolver for namespace %s", entryKey.getNamespace())));
+
+            SecretValue value = matchingResolver.resolve(entryKey.getKey());
+            if (value.isFailure()) {
+                value = findFallbackValue(entryKey, matchingResolver);
+            }
+            return value;
+        }).orElse(SecretValue.NOT_FOUND);
     }
 
     private SecretValue findFallbackValue(EntryKey entryKey, MountedSecretsResolver matchingResolver) {

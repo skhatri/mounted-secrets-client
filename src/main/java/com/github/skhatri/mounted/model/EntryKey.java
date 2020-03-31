@@ -25,10 +25,10 @@ public final class EntryKey {
         return defaultValue;
     }
 
-    public static EntryKey fromRawValue(String value) {
+    public static Optional<EntryKey> fromRawValue(String value) {
         String[] parts = value.split("::");
         if (parts.length < 3) {
-            throw new IllegalArgumentException("wrong key format");
+            return Optional.empty();
         }
         String namespace = parts[1];
         String keyWithValue = parts[2];
@@ -39,6 +39,6 @@ public final class EntryKey {
         } else {
             defaultValue = Optional.of(keyValue[1].trim());
         }
-        return new EntryKey(namespace, keyValue[0], defaultValue);
+        return Optional.of(new EntryKey(namespace, keyValue[0], defaultValue));
     }
 }

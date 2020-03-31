@@ -5,6 +5,7 @@ import com.github.skhatri.mounted.model.ProviderList;
 import com.github.skhatri.mounted.model.SecretProvider;
 import com.github.skhatri.mounted.model.SecretProviders;
 import com.github.skhatri.mounted.model.SecretValue;
+import com.github.skhatri.mounted.model.ValueDecision;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
@@ -40,9 +41,11 @@ public class DelegatingMountedSecretsResolverTest {
     }
 
     @Test
-    @DisplayName("fails if no resolvers are configured")
-    public void testDelegatingFailsIfNoResolversAreConfigured() {
-        Assertions.assertThrows(IllegalArgumentException.class, () -> new DelegatingMountedSecretsResolver(new HashMap<>()).resolve(""));
+    @DisplayName("data in unrecognized format are returned as is")
+    public void testReturnUnrecognizedDataWithoutLookup() {
+        SecretValue secretValue = new DelegatingMountedSecretsResolver(new HashMap<>()).resolve("");
+        Assertions.assertEquals(ValueDecision.DEFAULT, secretValue.getDecision());
+        Assertions.assertEquals(Optional.of(""), secretValue.getValue().map(s -> new String(s)));
     }
 
     @Test
