@@ -1,6 +1,22 @@
 import org.gradle.api.artifacts.maven.MavenDeployment
 import org.gradle.api.tasks.bundling.Jar
 
+buildscript {
+    fun createBuildVersion(projectVersion: String): String {
+        var derivedVersion = projectVersion
+        val versionWithSnapshot = projectVersion.replace("-SNAPSHOT", "")
+        val buildNumber = System.getenv("TRAVIS_BUILD_NUMBER") ?: "0"
+        if (project.extra["release"] == "true") {
+            derivedVersion = "${versionWithSnapshot}.${buildNumber}"
+        } else {
+            derivedVersion = "${versionWithSnapshot}.${buildNumber}-SNAPSHOT"
+        }
+        println("effective project version: ${derivedVersion}")
+        return derivedVersion
+    }
+    project.version = createBuildVersion("${project.version}")
+}
+
 plugins {
     idea
     java
@@ -120,13 +136,19 @@ artifacts {
     add("archives", sourcesJar)
 }
 
+
 publishing {
     repositories {
         maven {
-            url = uri(project.ext["upload.snapshot.url"])
+            var uploadUrl: String = if (project.extra["release"] == "true") {
+                "${project.extra["upload.release.url"]}"
+            } else {
+                "${project.extra["upload.snapshot.url"]}"
+            }
+            url = uri(uploadUrl)
             credentials {
-                username = "${project.ext["maven.username"]}"
-                password = "${project.ext["maven.password"]}"
+                username = "${project.extra["maven.username"]}"
+                password = "${project.extra["maven.password"]}"
             }
         }
     }
@@ -141,9 +163,9 @@ publishing {
 gradle.taskGraph.whenReady {
     if (allTasks.any { it is Sign }) {
         allprojects {
-            extra["signing.keyId"] = "${project.ext["signing.keyId"]}"
-            extra["signing.secretKeyRingFile"] = "${project.ext["signing.secretKeyRingFile"]}"
-            extra["signing.password"] = "${project.ext["signing.password"]}"
+            extra["signing.keyId"] = "${project.extra["signing.keyId"]}"
+            extra["signing.secretKeyRingFile"] = "${project.extra["signing.secretKeyRingFile"]}"
+            extra["signing.password"] = "${project.extra["signing.password"]}"
         }
     }
 }
@@ -151,4 +173,8 @@ gradle.taskGraph.whenReady {
 signing {
     sign(configurations.archives.get())
     sign(publishing.publications["mavenJava"])
+}
+
+tasks.withType<Sign>().configureEach {
+    onlyIf { project.extra["release"]=="true"  }
 }
