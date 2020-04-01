@@ -8,17 +8,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @DisplayName("Provider List Tests")
-public class ProviderListTest {
+public class SecretConfigurationTest {
     @Test
     @DisplayName("provider list properties")
     public void testProviderListProperties() {
-        ProviderList providerList = new ProviderList(new ArrayList<>());
+        SecretConfiguration providerList = new SecretConfiguration();
+        providerList.setProviders(new ArrayList<>());
         Assertions.assertTrue(providerList.toMap().isEmpty());
 
         List<SecretProvider> input = Arrays.asList(
             SecretProviders.any(ErrorDecision.EMPTY)
         );
-        ProviderList providerList1 = new ProviderList(input);
+        SecretConfiguration providerList1 = new SecretConfiguration();
+        providerList1.setProviders(input);
         Assertions.assertEquals(input, providerList1.getProviders());
     }
 }

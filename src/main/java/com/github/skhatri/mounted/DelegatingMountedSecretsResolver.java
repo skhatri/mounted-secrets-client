@@ -1,6 +1,7 @@
 package com.github.skhatri.mounted;
 
 import com.github.skhatri.mounted.model.EntryKey;
+import com.github.skhatri.mounted.model.EntryKeys;
 import com.github.skhatri.mounted.model.ErrorDecision;
 import com.github.skhatri.mounted.model.SecretValue;
 import com.github.skhatri.mounted.model.ValueDecision;
@@ -10,16 +11,19 @@ import java.util.Optional;
 public class DelegatingMountedSecretsResolver implements MountedSecretsResolver {
 
     private final Map<String, MountedSecretsResolver> resolvers;
+    private final ErrorDecision keyErrorDecision;
 
-    DelegatingMountedSecretsResolver(Map<String, MountedSecretsResolver> mountedSecretsResolvers) {
+    DelegatingMountedSecretsResolver(Map<String, MountedSecretsResolver> mountedSecretsResolvers, ErrorDecision keyErrorDecision) {
         this.resolvers = mountedSecretsResolvers;
+        this.keyErrorDecision = keyErrorDecision;
     }
 
     @Override
     public SecretValue resolve(String key) {
-        Optional<EntryKey> entryKeyOpt = EntryKey.fromRawValue(key);
+        Optional<EntryKey> entryKeyOpt = EntryKeys.fromRawValue(key);
         if (!entryKeyOpt.isPresent()) {
-            return SecretValue.valueOf(Optional.of(key.toCharArray()), ValueDecision.DEFAULT);
+            String value = keyErrorDecision.handleErrorForKey(key);
+            return SecretValue.valueOf(Optional.of(value.toCharArray()), ValueDecision.DEFAULT);
         }
         return entryKeyOpt.map(entryKey -> {
             MountedSecretsResolver matchingResolver =

@@ -1,7 +1,7 @@
 package com.github.skhatri.mounted;
 
 import com.github.skhatri.mounted.model.ErrorDecision;
-import com.github.skhatri.mounted.model.ProviderList;
+import com.github.skhatri.mounted.model.SecretConfiguration;
 import com.github.skhatri.mounted.model.SecretProvider;
 import com.github.skhatri.mounted.model.SecretProviders;
 import com.github.skhatri.mounted.model.SecretValue;
@@ -10,10 +10,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @DisplayName("Delegating Mounted Secrets Resolver Test")
 public class DelegatingMountedSecretsResolverTest {
@@ -27,8 +31,10 @@ public class DelegatingMountedSecretsResolverTest {
         SecretProvider adhocProvider = SecretProviders.anyForName("vault-identity", ErrorDecision.IDENTITY);
         SecretProvider remoteProvider = SecretProviders.anyForName("vault-fail", ErrorDecision.FAIL);
 
-        ProviderList providerList = new ProviderList(Arrays.asList(vaultProvider, adhocProvider, remoteProvider));
-        MountedSecretsFactory factory = new MountedSecretsFactory(providerList);
+        SecretConfiguration secretConfiguration = new SecretConfiguration();
+        secretConfiguration.setKeyErrorDecision(ErrorDecision.FAIL.toString().toLowerCase());
+        secretConfiguration.setProviders(Arrays.asList(vaultProvider, adhocProvider, remoteProvider));
+        MountedSecretsFactory factory = new MountedSecretsFactory(secretConfiguration);
         secretsResolver = factory.create();
     }
 
@@ -36,17 +42,35 @@ public class DelegatingMountedSecretsResolverTest {
     @DisplayName("delegating secret resolver does not have error decision of it's own")
     public void testDelegatingMountedSecretsErrorDecision() {
         Assertions.assertThrows(UnsupportedOperationException.class, () ->
-            new DelegatingMountedSecretsResolver(new HashMap<>()).errorDecisionStrategy()
+            new DelegatingMountedSecretsResolver(new HashMap<>(), ErrorDecision.FAIL).errorDecisionStrategy()
         );
     }
 
-    @Test
-    @DisplayName("data in unrecognized format are returned as is")
-    public void testReturnUnrecognizedDataWithoutLookup() {
-        SecretValue secretValue = new DelegatingMountedSecretsResolver(new HashMap<>()).resolve("");
-        Assertions.assertEquals(ValueDecision.DEFAULT, secretValue.getDecision());
-        Assertions.assertEquals(Optional.of(""), secretValue.getValue().map(s -> new String(s)));
+    @ParameterizedTest(name = "key error [{index}] with decision {0}")
+    @DisplayName("data in unrecognized format are handled as per key error decision")
+    @MethodSource("keyErrorData")
+    public void testReturnUnrecognizedDataWithoutLookup(ErrorDecision keyErrorDecision, String key, String expectedValue, boolean shouldError) {
+        MountedSecretsResolver resolver = new DelegatingMountedSecretsResolver(new HashMap<>(), keyErrorDecision);
+        if (shouldError) {
+            Assertions.assertThrows(RuntimeException.class, () -> resolver.resolve(key));
+        } else {
+            SecretValue secretValue = resolver.resolve(key);
+            Assertions.assertEquals(ValueDecision.DEFAULT, secretValue.getDecision());
+            Assertions.assertEquals(Optional.of(expectedValue), secretValue.getValue().map(s -> new String(s)));
+        }
     }
+
+    private static Stream<Arguments> keyErrorData() {
+        return Stream.of(
+            Arguments.of(ErrorDecision.EMPTY, "", "", false),
+            Arguments.of(ErrorDecision.EMPTY, "some::non::existent", "", false),
+            Arguments.of(ErrorDecision.IDENTITY, "", "", false),
+            Arguments.of(ErrorDecision.IDENTITY, "some::non::existent", "some::non::existent", false),
+            Arguments.of(ErrorDecision.FAIL, "", "", true),
+            Arguments.of(ErrorDecision.FAIL, "some::non::existent", "", true)
+        );
+    }
+
 
     @Test
     @DisplayName("Must be a delegating resolver")

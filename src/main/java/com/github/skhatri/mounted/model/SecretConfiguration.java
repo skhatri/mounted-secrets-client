@@ -2,18 +2,28 @@ package com.github.skhatri.mounted.model;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-public class ProviderList {
-    private final List<SecretProvider> providers;
+public class SecretConfiguration {
+    private String keyErrorDecision;
+    private List<SecretProvider> providers;
 
-    public ProviderList(List<SecretProvider> providers) {
+    public void setKeyErrorDecision(String keyErrorDecision) {
+        this.keyErrorDecision = keyErrorDecision;
+    }
+
+    public void setProviders(List<SecretProvider> providers) {
         this.providers = providers;
     }
 
     public List<SecretProvider> getProviders() {
         return providers;
+    }
+
+    public ErrorDecision getKeyErrorDecision() {
+        return Optional.ofNullable(keyErrorDecision).map(k -> ErrorDecision.valueOf(k.toUpperCase())).orElse(ErrorDecision.FAIL);
     }
 
     public final Map<String, SecretProvider> toMap() {
