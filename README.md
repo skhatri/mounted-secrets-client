@@ -16,7 +16,7 @@ password providers. If it is stored in file, it can read it.
 Add the following to your gradle file
 
 ```
-implementation("io.github.skhatri:mounted-secrets-client:0.2.3-SNAPSHOT")
+implementation("io.github.skhatri:mounted-secrets-client:0.2.3")
 ```
 
 ### Example?

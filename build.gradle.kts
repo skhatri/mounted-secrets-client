@@ -25,11 +25,10 @@ plugins {
     id("maven-publish")
     maven
     signing
-
 }
 
 repositories {
-  mavenCentral()
+    mavenCentral()
 }
 
 java {
@@ -126,16 +125,23 @@ tasks.check {
     dependsOn(arrayOf("jacocoTestReport", "jacocoTestCoverageVerification"))
 }
 
-
 val sourcesJar by tasks.registering(Jar::class) {
-    classifier = "sources"
+    dependsOn(JavaPlugin.CLASSES_TASK_NAME)
+    archiveClassifier.set("sources")
     from(sourceSets.main.get().allSource)
 }
 
-artifacts {
-    add("archives", sourcesJar)
+val javadocJar by tasks.registering(Jar::class) {
+    dependsOn(JavaPlugin.CLASSES_TASK_NAME)
+    from(tasks.javadoc)
+    archiveClassifier.set("javadoc")
 }
 
+
+artifacts {
+    add("archives", sourcesJar)
+    add("archives", javadocJar)
+}
 
 publishing {
     repositories {
@@ -156,6 +162,37 @@ publishing {
         register("mavenJava", MavenPublication::class) {
             from(components["java"])
             artifact(sourcesJar.get())
+            artifact(javadocJar.get())
+        }
+    }
+}
+
+val scmUrl=project.extra["scm.url"]
+project.publishing.publications.withType(MavenPublication::class.java).forEach { publication ->
+    with(publication.pom) {
+        withXml {
+            val root = asNode()
+            root.appendNode("name", project.name)
+            root.appendNode("description", "Library to read and integrate secrets into your app")
+            root.appendNode("url", scmUrl)
+        }
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+            }
+        }
+        developers {
+            developer {
+                id.set("${project.extra["author.handle"]}")
+                name.set("${project.extra["author.name"]}")
+                email.set("${project.extra["author.email"]}")
+            }
+        }
+        scm {
+            connection.set("scm:git:$scmUrl")
+            developerConnection.set("scm:git:$scmUrl")
+            url.set("${scmUrl}")
         }
     }
 }
@@ -176,5 +213,5 @@ signing {
 }
 
 tasks.withType<Sign>().configureEach {
-    onlyIf { project.extra["release"]=="true"  }
+    onlyIf { project.extra["release"] == "true" }
 }
