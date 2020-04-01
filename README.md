@@ -16,7 +16,7 @@ password providers. If it is stored in file, it can read it.
 Add the following to your gradle file
 
 ```
-implementation("io.github.skhatri:mounted-secrets-client:1.0.1-SNAPSHOT")
+implementation("io.github.skhatri:mounted-secrets-client:0.2.3-SNAPSHOT")
 ```
 
 ### Example?
@@ -25,10 +25,11 @@ implementation("io.github.skhatri:mounted-secrets-client:1.0.1-SNAPSHOT")
 Map<String, SecretProvider> secretProviderMap = new HashMap<>();
 SecretProvider secretProvider = SecretProviders.anyForName("vault");
 secretProviderMap.put("vault", secretProvider);
-ProviderList providerList = new ProviderList(Arrays.asList(secretProvider));
-MountedSecretsFactory factory = new MountedSecretsFactory(providerList);
+SecretConfiguration config = new SecretConfiguration();
+config.setProviders(Arrays.asList(secretProvider));
+config.setKeyErrorDecision("identity");
+MountedSecretsFactory factory = new MountedSecretsFactory(config);
 secretsResolver = factory.create();
-
 
 SecretValue secretValue = secretsResolver.resolve("secret::vault::key1");
 if (secretValue.isFailure()) {
@@ -46,32 +47,48 @@ assert secretValue.hasValue();
 
 #### Step 1. Add a map like this in application.yaml:
 ```
-secrets.providers:
+secrets.config:
+  #fail, empty, identity. defaults to fail
+  key-error-decision: "fail"
+  providers:
   - name: vault
     mount: "${SECRETS_FILE:/vault/secrets}"
     key: "${KEY_FILE:/tmp/key}"
-    #if default is not set at entry level, fail, empty, identity
+    #if default is not set at entry level, fail, empty, identity. defaults to fail
     error-decision: empty
     #additional entries in one file, uri
     entries-location: "others.properties"
 ```
+
+The attributes are explained below:
+
+| Configuration | Description |
+| ------------- |:------------|
+| key-error-decision | Flag to provide instructions for when the key is not well-formed.  |
+| provider:       |             |
+| name            | Namespace to support multiple secret mounts            |
+| mount           | Top Level Resource directory where content is placed   |
+| key             | Unused. Possibly used for decryption/client-auth later |
+| error-decision  | Instructions on what the error handling strategy is at field level for this namespace |
+| entries-location| Used for mounts where keys are stored in properties file format | 
+
+
 
 #### Step 2. Load ProviderList from config
 
 Create a ConfigurationProperties bean
 ```
 @ConfigurationProperties(prefix="secrets")
-public class SecretProviderConfig {
-    private List<SecretProvider> providers;
+public class SecretsProperties {
+    private SecretConfiguration config;
 
-    public List<SecretProvider> getProviders() {
+    public SecretConfiguration getConfig() {
         return providers;
     }
 
-    public void setProviders(List<SecretProvider> providers) {
-        this.providers = providers;
+    public void setConfig(SecretConfiguration config) {
+        this.config = config;
     }
-
 }
 
 ```
@@ -85,9 +102,8 @@ Instantiate a MountedSecretsResolver like this
 public class SecretResolverConfig {
     @Bean
     @Autowired
-    public MountedSecretsResolver newResolver(SecretProviderConfig secretProviderConfig) {
-          ProviderList providerList = new ProviderList(secretProviderConfig.getProviders);
-          return new MountedSecretsFactory(providerList).create();
+    public MountedSecretsResolver newResolver(SecretsProperties secretProperties) {
+          return new MountedSecretsFactory(secretProperties.getConfig()).create();
     }
 }
 ```
