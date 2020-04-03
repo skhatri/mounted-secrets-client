@@ -16,7 +16,7 @@ password providers. If it is stored in file, it can read it.
 Add the following to your gradle file
 
 ```
-implementation("io.github.skhatri:mounted-secrets-client:0.2.3")
+implementation("io.github.skhatri:mounted-secrets-client:0.2.4")
 ```
 
 ### Example?
@@ -47,30 +47,34 @@ assert secretValue.hasValue();
 
 #### Step 1. Add a map like this in application.yaml:
 ```
-secrets.config:
-  #fail, empty, identity. defaults to fail
-  key-error-decision: "fail"
-  providers:
-  - name: vault
-    mount: "${SECRETS_FILE:/vault/secrets}"
-    key: "${KEY_FILE:/tmp/key}"
-    #if default is not set at entry level, fail, empty, identity. defaults to fail
-    error-decision: empty
-    #additional entries in one file, uri
-    entries-location: "others.properties"
+secrets:
+  enabled: true
+  config:
+    #fail, empty, identity. defaults to fail
+    key-error-decision: "fail"
+    providers:
+    - name: vault
+      mount: "${SECRETS_FILE:/vault/secrets}"
+      key: "${KEY_FILE:/tmp/key}"
+      #if default is not set at entry level, fail, empty, identity. defaults to fail
+      error-decision: empty
+      #additional entries in one file, uri
+      entries-location: "others.properties"
 ```
 
 The attributes are explained below:
 
 | Configuration | Description |
 | ------------- |:------------|
-| key-error-decision | Flag to provide instructions for when the key is not well-formed.  |
-| provider:       |             |
-| name            | Namespace to support multiple secret mounts            |
-| mount           | Top Level Resource directory where content is placed   |
-| key             | Unused. Possibly used for decryption/client-auth later |
-| error-decision  | Instructions on what the error handling strategy is at field level for this namespace |
-| entries-location| Used for mounts where keys are stored in properties file format | 
+| enabled | Flag to enable/disable secret lookup. Uses NoOp function if disabled  |
+| config:         |           |
+| ` `key-error-decision | Flag to provide instructions for when the key is not well-formed.  |
+| ` `provider:       |             |
+| `  `name            | Namespace to support multiple secret mounts            |
+| `  `mount           | Top Level Resource directory where content is placed   |
+| `  `key             | Unused. Possibly used for decryption/client-auth later |
+| `  `error-decision  | Instructions on what the error handling strategy is at field level for this namespace |
+| `  `entries-location| Used for mounts where keys are stored in properties file format | 
 
 
 

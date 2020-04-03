@@ -44,7 +44,6 @@ configurations {
 
 dependencies {
 
-    implementation("org.yaml:snakeyaml:1.26")
     testImplementation("org.mockito:mockito-core:3.3.3")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.1")
