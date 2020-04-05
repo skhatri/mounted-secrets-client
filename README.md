@@ -1,6 +1,7 @@
 
 [![Build](https://travis-ci.com/skhatri/mounted-secrets-client.svg?branch=master)](https://travis-ci.com/github/skhatri/mounted-secrets-client)
 [![Code Coverage](https://img.shields.io/codecov/c/github/skhatri/mounted-secrets-client/master.svg)](https://codecov.io/github/skhatri/mounted-secrets-client?branch=master)
+[![Maintainability](https://api.codeclimate.com/v1/badges/26bd13fa3ac3fb95d5a2/maintainability)](https://codeclimate.com/github/skhatri/mounted-secrets-client/maintainability)
 
 ## Mounted Secrets Client
 
